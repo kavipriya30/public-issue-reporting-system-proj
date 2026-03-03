@@ -8,7 +8,9 @@ const {
   getAllIssues, 
   updateIssueStatus, 
   getIssueStats,
-  deleteIssue
+  deleteIssue,
+  toggleUpvote,
+  addComment
 } = require('../controllers/issueController');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 
@@ -53,5 +55,11 @@ router.get('/stats', authMiddleware, adminMiddleware, getIssueStats);
 
 // Delete issue
 router.delete('/:issueId', authMiddleware, deleteIssue);
+
+// Toggle upvote
+router.post('/:issueId/upvote', authMiddleware, toggleUpvote);
+
+// Add comment
+router.post('/:issueId/comment', authMiddleware, addComment);
 
 module.exports = router;

@@ -11,7 +11,15 @@ let issues = [
     description: 'Large pothole on Main Street causing damage to vehicles. The hole is approximately 3 feet wide and 1 foot deep.',
     location: 'Main Street, near City Hall',
     status: 'resolved',
-    image: '1769707350818-543619657.webp',
+    priority: 'high',
+    upvotes: [],
+    tags: ['urgent', 'safety'],
+    comments: [],
+    image: null,
+    resolution: {
+      solution: 'Road repair crew dispatched and pothole filled',
+      resolvedDate: new Date('2024-01-18')
+    },
     createdAt: new Date('2024-01-15'),
     updatedAt: new Date('2024-01-18')
   },
@@ -22,7 +30,15 @@ let issues = [
     description: 'Water pipe burst causing flooding on the sidewalk. Water is continuously flowing and creating a safety hazard.',
     location: 'Park Avenue, Block 5',
     status: 'in-progress',
-    image: '1769706996957-338808881.avif',
+    priority: 'critical',
+    upvotes: [],
+    tags: ['emergency'],
+    comments: [],
+    image: null,
+    resolution: {
+      solution: 'Plumbing team working on pipe replacement',
+      estimatedDate: new Date('2024-02-01')
+    },
     createdAt: new Date('2024-01-12'),
     updatedAt: new Date('2024-01-14')
   },
@@ -33,7 +49,11 @@ let issues = [
     description: 'Street light not working for over a week. The area is very dark at night creating safety concerns.',
     location: 'Oak Street and 2nd Avenue intersection',
     status: 'pending',
-    image: '1769707223011-911192937.jpg',
+    priority: 'medium',
+    upvotes: [],
+    tags: ['lighting'],
+    comments: [],
+    image: null,
     createdAt: new Date('2024-01-10'),
     updatedAt: new Date('2024-01-16')
   },
@@ -44,7 +64,15 @@ let issues = [
     description: 'Garbage bins overflowing for several days. Attracting pests and creating unpleasant odors.',
     location: 'Residential Area, Maple Drive',
     status: 'in-progress',
-    image: '1769706914285-891253569.jpg',
+    priority: 'high',
+    upvotes: [],
+    tags: ['sanitation'],
+    comments: [],
+    image: null,
+    resolution: {
+      solution: 'Extra collection scheduled',
+      estimatedDate: new Date('2024-01-25')
+    },
     createdAt: new Date('2024-01-14'),
     updatedAt: new Date('2024-01-14')
   },
@@ -55,7 +83,15 @@ let issues = [
     description: 'Broken playground equipment in the park. The swing set is damaged and unsafe for children.',
     location: 'Central Park, Children Area',
     status: 'resolved',
-    image: '1769707497039-641514870.jpg',
+    priority: 'medium',
+    upvotes: [],
+    tags: ['park', 'children'],
+    comments: [],
+    image: null,
+    resolution: {
+      solution: 'Swing set repaired and safety inspected',
+      resolvedDate: new Date('2024-01-15')
+    },
     createdAt: new Date('2024-01-13'),
     updatedAt: new Date('2024-01-15')
   }
@@ -66,7 +102,7 @@ let nextIssueId = 6;
 // Create Issue
 const createIssue = async (req, res) => {
   try {
-    const { issueType, description, location } = req.body;
+    const { issueType, description, location, priority, tags } = req.body;
     const userId = req.userId;
 
     const issue = {
@@ -77,6 +113,10 @@ const createIssue = async (req, res) => {
       location,
       image: req.file ? req.file.filename : null,
       status: 'pending',
+      priority: priority || 'medium',
+      upvotes: [],
+      tags: tags ? JSON.parse(tags) : [],
+      comments: [],
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -129,12 +169,28 @@ const getAllIssues = async (req, res) => {
 const updateIssueStatus = async (req, res) => {
   try {
     const { issueId } = req.params;
-    const { status } = req.body;
+    const { status, solution, estimatedDate } = req.body;
 
     const issueIndex = issues.findIndex(i => i._id === issueId);
     if (issueIndex !== -1) {
       issues[issueIndex].status = status;
       issues[issueIndex].updatedAt = new Date();
+      
+      if (!issues[issueIndex].resolution) {
+        issues[issueIndex].resolution = {};
+      }
+      
+      if (solution) {
+        issues[issueIndex].resolution.solution = solution;
+      }
+      if (estimatedDate) {
+        issues[issueIndex].resolution.estimatedDate = new Date(estimatedDate);
+      }
+      if (status === 'resolved') {
+        issues[issueIndex].resolution.resolvedDate = new Date();
+        issues[issueIndex].resolution.resolvedBy = req.userId;
+      }
+      
       const issue = issues[issueIndex];
       res.json({ success: true, message: 'Issue status updated successfully', issue });
     } else {
@@ -195,11 +251,70 @@ const deleteIssue = async (req, res) => {
   }
 };
 
+// Toggle Upvote
+const toggleUpvote = async (req, res) => {
+  try {
+    const { issueId } = req.params;
+    const userId = req.userId;
+
+    const issue = issues.find(i => i._id === issueId);
+    if (!issue) {
+      return res.status(404).json({ success: false, message: 'Issue not found' });
+    }
+
+    if (!issue.upvotes) issue.upvotes = [];
+    
+    const upvoteIndex = issue.upvotes.indexOf(userId);
+    if (upvoteIndex > -1) {
+      issue.upvotes.splice(upvoteIndex, 1);
+    } else {
+      issue.upvotes.push(userId);
+    }
+
+    res.json({ success: true, upvotes: issue.upvotes.length, hasUpvoted: upvoteIndex === -1 });
+  } catch (error) {
+    console.error('Toggle upvote error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// Add Comment
+const addComment = async (req, res) => {
+  try {
+    const { issueId } = req.params;
+    const { text } = req.body;
+    const userId = req.userId;
+
+    const issue = issues.find(i => i._id === issueId);
+    if (!issue) {
+      return res.status(404).json({ success: false, message: 'Issue not found' });
+    }
+
+    if (!issue.comments) issue.comments = [];
+    
+    const comment = {
+      userId,
+      text,
+      createdAt: new Date()
+    };
+    
+    issue.comments.push(comment);
+    issue.updatedAt = new Date();
+
+    res.json({ success: true, message: 'Comment added', comment });
+  } catch (error) {
+    console.error('Add comment error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 module.exports = {
   createIssue,
   getUserIssues,
   getAllIssues,
   updateIssueStatus,
   getIssueStats,
-  deleteIssue
+  deleteIssue,
+  toggleUpvote,
+  addComment
 };

@@ -28,6 +28,38 @@ const issueSchema = new mongoose.Schema({
     enum: ['pending', 'in-progress', 'resolved'],
     default: 'pending'
   },
+  priority: {
+    type: String,
+    enum: ['low', 'medium', 'high', 'critical'],
+    default: 'medium'
+  },
+  upvotes: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  tags: [{
+    type: String
+  }],
+  comments: [{
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    text: String,
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  resolution: {
+    solution: String,
+    estimatedDate: Date,
+    resolvedDate: Date,
+    resolvedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    }
+  },
   createdAt: {
     type: Date,
     default: Date.now

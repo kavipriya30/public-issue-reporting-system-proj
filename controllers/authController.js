@@ -4,8 +4,8 @@ const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
 
 // Generate JWT Token
-const generateToken = (userId, email) => {
-  return jwt.sign({ userId, email }, process.env.JWT_SECRET || 'your-secret-key', {
+const generateToken = (userId, email, role, name) => {
+  return jwt.sign({ userId, email, role, name }, process.env.JWT_SECRET || 'your-secret-key', {
     expiresIn: '7d'
   });
 };
@@ -45,7 +45,7 @@ const registerUser = async (req, res) => {
 
     await user.save();
 
-    const token = generateToken(user._id, user.email);
+    const token = generateToken(user._id, user.email, user.role, user.name);
     res.status(201).json({
       success: true,
       message: 'User registered successfully',
@@ -82,7 +82,7 @@ const loginUser = async (req, res) => {
       name: isAdmin ? 'Admin User' : 'Demo User'
     };
 
-    const token = generateToken(demoUser._id, demoUser.email);
+    const token = generateToken(demoUser._id, demoUser.email, demoUser.role, demoUser.name);
     res.json({
       success: true,
       message: 'Login successful',

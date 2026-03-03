@@ -15,12 +15,11 @@ const authMiddleware = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
     
     // For demo purposes - create user from token
-    const isAdmin = decoded.email && decoded.email.toLowerCase().includes('admin');
     const user = {
       _id: decoded.userId,
       email: decoded.email,
-      role: isAdmin ? 'admin' : 'citizen',
-      name: isAdmin ? 'Admin User' : 'Demo User'
+      role: decoded.role || 'citizen',
+      name: decoded.name || 'Demo User'
     };
 
     req.userId = decoded.userId;
